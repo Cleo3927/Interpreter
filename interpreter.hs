@@ -8,37 +8,40 @@ import Grammar.Par   ( pProg, myLexer )
 import Grammar.Print ( Print, printTree )
 import Grammar.Skel  ()
 import Eval as E
+import GHC.IO.FD (stderr)
+import Data.ByteString.Char8
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
 type Verbosity  = Int
 
 putStrV :: Verbosity -> String -> IO ()
-putStrV v s = when (v > 1) $ putStrLn s
+putStrV v s = when (v > 1) $ Prelude.putStrLn s
 
 runFile :: ParseFun Prog -> FilePath -> IO ()
-runFile p f = putStrLn f >> readFile f >>= run p
+runFile p f = Prelude.putStrLn f >> Prelude.readFile f >>= run p
+
+runProg :: Prog -> IO ()
+runProg tree = do
+  res <- E.runEvalProgram tree
+  case res of
+    Right (Empt, _) -> exitSuccess
+    Left msg -> do
+      Prelude.putStrLn msg
+      exitFailure
+        -- _ -> exitFailure
 
 run :: ParseFun Prog -> String -> IO ()
 run p s =
   case p ts of
     Left err -> do
-      putStrLn "\nParse              Failed...\n"
-      putStrLn err
+      Prelude.putStrLn "\nParse              Failed...\n"
+      Prelude.putStrLn err
       exitFailure
     Right tree -> do
-      res <- E.runEvalProgram tree
-      exitSuccess
-	--   case res of
-        -- Right Empty     -> exitSuccess
-        -- Right (Intgr x) -> if x /= 0 then exitWith (ExitFailure (fromInteger x)) else exitSuccess
-        -- Left msg        -> do
-    	--   hPutStrLn stderr ("Error: " ++ msg)
-        -- --   exitFailure
-        -- _ -> exitFailure
+      runProg tree
   where
-	ts = myLexer s
-	showPosToken ((l,c),t) = concat [ show l, ":", show c, "\t", show t ]
+    ts = myLexer s
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree = do
@@ -47,7 +50,7 @@ showTree v tree = do
 
 usage :: IO ()
 usage = do
-  putStrLn $ unlines
+  Prelude.putStrLn $ Prelude.unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
     , "  (no arguments)  Parse stdin verbosely."
@@ -60,7 +63,7 @@ main = do
   args <- getArgs
   case args of
     ["--help"] -> usage
-    []         -> getContents >>= run pProg
+    []         -> Prelude.getContents >>= run pProg
     "-s":fs    -> mapM_ (runFile pProg) fs
     fs         -> mapM_ (runFile pProg) fs
 

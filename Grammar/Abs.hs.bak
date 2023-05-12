@@ -43,23 +43,20 @@ data Stmt' a
     = Empty a
     | Decl a (Type' a) Ident
     | Ass a (Type' a) Ident (Expr' a)
-    | AssTuple a [Item' a] (Expr' a)
     | Incr a (Type' a) Ident
     | Decr a (Type' a) Ident
     | Ret a (Expr' a)
     | Retv a
     | Cond a (Expr' a) [Stmt' a]
     | CondElse a (Expr' a) [Stmt' a] [Stmt' a]
-    | While a (Expr' a) [Stmt' a]
-    | For a (Type' a) Ident (Expr' a) (Expr' a) [Stmt' a]
+    | While a (Expr' a) [Expr' a]
+    | WhileSuspended a (Expr' a) [Expr' a]
+    | WhileContinued a (Expr' a) [Expr' a]
+    | For a (Type' a) Ident (Expr' a) (Expr' a) [Expr' a]
     | SExp a (Expr' a)
     | Continue a
     | Break a
     | Print a (Expr' a)
-  deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
-
-type Item = Item' BNFC'Position
-data Item' a = Var a (Type' a) Ident | ITuple a [Item' a]
   deriving (C.Eq, C.Ord, C.Show, C.Read, C.Functor, C.Foldable, C.Traversable)
 
 type Type = Type' BNFC'Position
@@ -139,7 +136,6 @@ instance HasPosition Stmt where
     Empty p -> p
     Decl p _ _ -> p
     Ass p _ _ _ -> p
-    AssTuple p _ _ -> p
     Incr p _ _ -> p
     Decr p _ _ -> p
     Ret p _ -> p
@@ -152,11 +148,6 @@ instance HasPosition Stmt where
     Continue p -> p
     Break p -> p
     Print p _ -> p
-
-instance HasPosition Item where
-  hasPosition = \case
-    Var p _ _ -> p
-    ITuple p _ -> p
 
 instance HasPosition Type where
   hasPosition = \case

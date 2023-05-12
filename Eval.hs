@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 module Eval where
 
+import qualified Prelude as C
 import Grammar.Abs
 import Grammar.Print
 import qualified Data.Map as M
@@ -14,9 +15,10 @@ import Distribution.PackageDescription (GenericPackageDescription(condBenchmarks
 import System.Process (CreateProcess(env))
 import Distribution.Simple.Utils (xargs)
 import Distribution.Compat.ResponseFile (expandResponse)
+import Prelude
 
 data Value = Intgr Integer | Strln String | Bl Bool | Empt | Func TopDef
-data BlokValue = EReturn Value | EBreak | EContinue | EEmpty
+data BlokValue = EReturn Value | EBreak BNFC'Position | EContinue BNFC'Position | EEmpty
 
 type Location = Int
 type Env = M.Map Ident Location -- nazwa, lokacja
@@ -29,6 +31,9 @@ evalMaybe s (Just a) = return a
 
 evalExpr :: Expr -> RSE Value
 
+printErr :: BNFC'Position -> String
+printErr Nothing = ""
+printErr (Just (line, col)) = " in line " ++ show line 
 
 setupArgs :: BNFC'Position -> [Arg] -> [Expr] -> Env -> RSE Env
 setupArgs pos (a:args) (e:exprs) env = do
@@ -41,11 +46,11 @@ setupArgs pos (a:args) (e:exprs) env = do
     Argref _ typ nameArg -> do
         case e of
             EVar pos typ nameExpr -> do
-                loc <- evalMaybe "Variable doesn't exists" (M.lookup nameExpr env)
+                loc <- evalMaybe ("Variable doesn't exists" ++ printErr pos) (M.lookup nameExpr env)
                 setupArgs pos args exprs (M.insert nameArg loc env)
-            _ -> throwError "Argument is not a reference"
-setupArgs pos (n:no) _ _ = do throwError "Not enough arguments"
-setupArgs pos _ (e:eo) _ = do throwError "Too many arguments"
+            _ -> throwError ("Argument is not a reference" ++ printErr pos)
+setupArgs pos (n:no) _ _ = do throwError ("Not enough arguments" ++ printErr pos)
+setupArgs pos _ (e:eo) _ = do throwError ("Too many arguments" ++ printErr pos)
 setupArgs _ _ _ env = do return env
 
 unpackFunction :: TopDef -> ([Arg], [Stmt])
@@ -54,43 +59,43 @@ unpackFunction (FnDef pos typ name argsFn (Block _ blok)) = (argsFn, blok)
 evalExpr (EVar pos typ name) = do
     env <- ask
     s   <- get
-    loc <- evalMaybe "Undefined variable " (M.lookup name env)
-    evalMaybe "Undefined variable " (M.lookup loc s)
+    loc <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup name env)
+    evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup loc s)
 evalExpr (ELitInt _ n) = return (Intgr n)
 evalExpr (ELitTrue _) = return (Bl True)
 evalExpr (ELitFalse _) = return (Bl False)
 evalExpr (EApp pos typ name args) = do
     env <- ask
     s   <- get
-    loc <- evalMaybe "Undefined function" (M.lookup name env)
-    fn  <- evalMaybe "Undefined function" (M.lookup loc s)
+    loc <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup name env)
+    fn  <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup loc s)
     case fn of
         Func x ->
             let (argsFn, blok) = unpackFunction x in
                 do
                 nenv <- setupArgs pos argsFn args env
                 local (const nenv) (evalStmtFun blok)
-        _ -> throwError "Not a function"
+        _ -> throwError ("Not a function" ++ printErr pos)
 
 evalExpr (EString _ str) = return (Strln str)
 evalExpr (Neg pos subexpr) = do
     val <- evalExpr subexpr
     case val of
         Intgr num -> return (Intgr (num * (-1)))
-        _ -> throwError "Negation of this expression is impossible"
+        _ -> throwError ("Negation of this expression is impossible" ++ printErr pos)
 evalExpr (Not pos subexpr) = do
     val <- evalExpr subexpr
     case val of
          Bl num -> return (Bl (not num))
-         _ -> throwError "Boolean negation of this expression is impossible"
+         _ -> throwError ("Boolean negation of this expression is impossible" ++ printErr pos)
 evalExpr (EMul pos expr1 mulop expr2) = do
     e1 <- evalExpr expr1
     e2 <- evalExpr expr2
     case (e1, e2, mulop) of
         (Intgr n1, Intgr n2, Times _) -> return (Intgr $ n1 * n2)
-        (Intgr n1, Intgr n2, Div _) -> if n2 /= 0 then return (Intgr (div n1 n2)) else throwError "Div 0"
-        (Intgr n1, Intgr n2, Mod _) -> if n2 /= 0 then return (Intgr $ mod n1 n2) else throwError "Mod 0"
-        _ -> throwError "Impossible Mul Operation"
+        (Intgr n1, Intgr n2, Div _) -> if n2 /= 0 then return (Intgr (div n1 n2)) else throwError ("Divide by 0" ++ printErr pos)
+        (Intgr n1, Intgr n2, Mod _) -> if n2 /= 0 then return (Intgr $ mod n1 n2) else throwError ("Modulo 0" ++ printErr pos)
+        _ -> throwError ("Impossible Mul Operation" ++ printErr pos)
 evalExpr (EAdd pos expr1 addop expr2) = do
     e1 <- evalExpr expr1
     e2 <- evalExpr expr2
@@ -98,7 +103,7 @@ evalExpr (EAdd pos expr1 addop expr2) = do
         (Intgr n1, Intgr n2, Plus _) -> return (Intgr $ n1 + n2)
         (Intgr n1, Intgr n2, Minus _) -> return (Intgr $ n1 - n2)
         (Strln n1, Strln n2, Plus _) -> return (Strln $ n1 ++ n2)
-        _ -> throwError "Impossible Add Operation"
+        _ -> throwError ("Impossible Add Operation" ++ printErr pos)
 
 evalExpr (ERel pos expr1 relop expr2) = do
     e1 <- evalExpr expr1
@@ -114,19 +119,19 @@ evalExpr (ERel pos expr1 relop expr2) = do
         (Bl n1, Bl n2, NE _) -> return (Bl $ n1 /= n2)
         (Strln n1, Strln n2, EQU _) -> return (Bl (n1 == n2))
         (Strln n1, Strln n2, NE _) -> return (Bl $ (n1 /= n2))
-        _ -> throwError "Impossible Rel Operation"
+        _ -> throwError ("Impossible Rel Operation" ++ printErr pos)
 evalExpr (EAnd pos expr1 expr2) = do
     e1 <- evalExpr expr1
     e2 <- evalExpr expr2
     case (e1, e2) of
         (Bl n1, Bl n2) -> return (Bl (n1 && n2))
-        _ -> throwError "Impossible And Operation"
+        _ -> throwError ("Impossible And Operation" ++ printErr pos)
 evalExpr (EOr pos expr1 expr2) = do
     e1 <- evalExpr expr1
     e2 <- evalExpr expr2
     case (e1, e2) of
         (Bl n1, Bl n2) -> return (Bl (n1 || n2))
-        _ -> throwError "Impossible Or Operation"
+        _ -> throwError ("Impossible Or Operation" ++ printErr pos)
 
 alloc :: RSE Location
 alloc = do
@@ -150,31 +155,31 @@ evalStmt ((Decl pos typ name):others) = do
         (Bool _) -> do
                    modify (M.insert loc (Bl False))
                    local (M.insert name loc) (evalStmt others)
-        _ -> throwError "Couldn't declare variable with this type"
+        _ -> throwError ("Couldn't declare variable with this type" ++ printErr pos)
 evalStmt ((Ass pos typ name expr):others) = do
     env <- ask
-    l <- evalMaybe "Undefined variable" (M.lookup name env)
+    l <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup name env)
     e1 <- evalExpr expr
     modify (M.insert l e1)
     evalStmt others
 evalStmt ((Incr pos typ name):others) = do
     env <- ask
-    l   <- evalMaybe "Undefined variable" (M.lookup name env)
+    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup name env)
     e1  <- gets (M.lookup l)
     case e1 of
         Just (Intgr n) -> do
                    modify (M.insert l (Intgr (n + 1)))
                    evalStmt others
-        _ -> throwError "Impossible to increase"
+        _ -> throwError ("Impossible to increase" ++ printErr pos)
 evalStmt ((Decr pos typ name):others) = do
     env <- ask
-    l   <- evalMaybe "Undefined variable" (M.lookup name env)
+    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup name env)
     e1  <- gets (M.lookup l)
     case e1 of
         Just (Intgr n) -> do
                    modify (M.insert l (Intgr (n - 1)))
                    evalStmt others
-        _ -> throwError "Impossible to increase"
+        _ -> throwError ("Impossible to increase" ++ printErr pos)
 evalStmt ((Ret pos expr):others) = do
     e <- evalExpr expr
     return (EReturn e)
@@ -183,30 +188,25 @@ evalStmt ((Cond pos cond ifstmt):others) = do
     e <- evalExpr cond
     case e of
         (Bl b) -> if b then evalStmt (ifstmt ++ others) else evalStmt others
-        _ -> throwError "Condition doesn't have boolean type"
+        _ -> throwError ("Condition doesn't have boolean type" ++ printErr pos)
 evalStmt ((CondElse pos cond ifstmt elsestmt):others) = do
     e <- evalExpr cond
     case e of
         (Bl b) -> if b then evalStmt (ifstmt ++ others) else evalStmt (elsestmt ++ others)
-        _ -> throwError "Condition doesn't have boolean type"
-evalStmt ((While pos cond loop):others) = do
-    e <- evalExpr cond
-    case e of
-        (Bl b) -> if b then evalStmt (loop ++ While pos cond loop:others) else evalStmt others
-        _ -> throwError "Condition doesn't have boolean type"
+        _ -> throwError ("Condition doesn't have boolean type" ++ printErr pos)
 
 evalStmt (WhileSuspended pos cond stmt:others) = do
     res <- evalStmt stmt
     case res of
         EReturn x -> return (EReturn x)
-        EBreak -> evalStmt others
+        EBreak _-> evalStmt others
         _ -> evalStmt (WhileContinued pos cond stmt:others)
 evalStmt ((WhileContinued pos cond stmt):others) = do
   e <- evalExpr cond
   case e of
         (Bl True) -> evalStmt (WhileSuspended pos cond stmt:others)
         (Bl False) -> evalStmt others
-        _ -> throwError "not a boolean"
+        _ -> throwError ("Not a boolean" ++ printErr pos)
 evalStmt ((While pos cond stmt):others) = evalStmt (WhileContinued pos cond stmt:others)
 
 evalStmt ((For pos typ name expr1 expr2 loop):others) = do
@@ -216,16 +216,16 @@ evalStmt ((For pos typ name expr1 expr2 loop):others) = do
     case (typ, e1, e2) of
         (Int _, Intgr n1, Intgr n2) -> do
             modify (M.insert loc (Intgr n1))
-            local (M.insert name loc) (evalStmt (While pos (ERel pos (EVar pos typ name) (LTH pos) expr2) (loop ++ [Incr pos typ name]):others))
-        _ -> throwError "Variables aren't ints"
+            local (M.insert name loc) (evalStmt (Decr pos typ name:(While pos (ERel pos (EVar pos typ name) (LTH pos) expr2) (Incr pos typ name:loop):others)))
+        _ -> throwError ("Variables aren't integers " ++ printErr pos)
 
 evalStmt (SExp pos expr1:others) = do
     e <- evalExpr expr1
     evalStmt others
 evalStmt (Continue pos:others) = do
-    return EContinue
+    return (EContinue pos)
 evalStmt (Break pos:others) = do
-    return EBreak
+    return (EBreak pos)
 evalStmt (Print pos expr:others) = do
     e <- evalExpr expr
     liftIO $ putStrLn $ showValueSimple e
@@ -243,9 +243,9 @@ evalStmtFun :: [Stmt] -> RSE Value
 evalStmtFun stmts = do
     v <- evalStmt stmts
     case v of
-        EReturn x -> return x 
-        EBreak -> throwError "break may not be used outside of a loop"
-        EContinue -> throwError "continue may not be used outside of a loop"
+        EReturn x -> return x
+        EBreak pos -> throwError ("Break may not be used outside of a loop" ++ printErr pos)
+        EContinue pos -> throwError ("Continue may not be used outside of a loop" ++ printErr pos)
         EEmpty -> return Empt
 
 createVarsList :: [TopDefVar' a] -> ([Ident], [Value])
