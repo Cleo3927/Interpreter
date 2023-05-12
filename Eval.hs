@@ -211,11 +211,13 @@ evalStmt ((While pos cond stmt):others) = evalStmt (WhileContinued pos cond stmt
 
 evalStmt ((For pos typ name expr1 expr2 loop):others) = do
     loc <- alloc
-    case typ of
-        (Int _) -> do
-                   modify (M.insert loc (Intgr 0))
-                   local (M.insert name loc) (evalStmt (While pos (ERel pos expr1 (LE pos) expr2) loop:others))
-        _ -> throwError "Couldn't declare variable with this type in loop"
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (typ, e1, e2) of
+        (Int _, Intgr n1, Intgr n2) -> do
+            modify (M.insert loc (Intgr n1))
+            local (M.insert name loc) (evalStmt (While pos (ERel pos (EVar pos typ name) (LTH pos) expr2) (loop ++ [Incr pos typ name]):others))
+        _ -> throwError "Variables aren't ints"
 
 evalStmt (SExp pos expr1:others) = do
     e <- evalExpr expr1
@@ -225,28 +227,26 @@ evalStmt (Continue pos:others) = do
 evalStmt (Break pos:others) = do
     return EBreak
 evalStmt (Print pos expr:others) = do
-    e <- evalExpr expr 
+    e <- evalExpr expr
     liftIO $ putStrLn $ showValueSimple e
-    evalStmt others 
-    
-    
+    evalStmt others
+
+
 showValueSimple :: Value -> String
 showValueSimple (Intgr n) = show n
 showValueSimple (Bl b) = show b
 showValueSimple (Strln s) = show s
-showValueSimple _ = "" 
+showValueSimple _ = ""
 
 
 evalStmtFun :: [Stmt] -> RSE Value
 evalStmtFun stmts = do
     v <- evalStmt stmts
     case v of
-        EReturn x -> return x
+        EReturn x -> return x 
         EBreak -> throwError "break may not be used outside of a loop"
         EContinue -> throwError "continue may not be used outside of a loop"
         EEmpty -> return Empt
-
-
 
 createVarsList :: [TopDefVar' a] -> ([Ident], [Value])
 createVarsList (x:list) =

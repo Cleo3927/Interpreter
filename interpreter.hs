@@ -27,7 +27,7 @@ run p s =
       putStrLn err
       exitFailure
     Right tree -> do
-      E.runEvalProgram tree
+      res <- E.runEvalProgram tree
       exitSuccess
 	--   case res of
         -- Right Empty     -> exitSuccess
