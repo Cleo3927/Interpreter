@@ -1,0 +1,14 @@
+create($s);
+
+@dodaj($x) {
+	$x++;
+	print($x);
+}
+
+Main {
+    create($a);
+    $a = 5;
+    print($a);
+    @dodaj($a);
+    print($a);
+}

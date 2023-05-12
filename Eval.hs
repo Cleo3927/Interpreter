@@ -1,0 +1,277 @@
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+module Eval where
+
+import Grammar.Abs
+import Grammar.Print
+import qualified Data.Map as M
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Except
+import Control.Monad.Identity
+import Data.Maybe(fromMaybe)
+import qualified Data.Word
+import Distribution.PackageDescription (GenericPackageDescription(condBenchmarks))
+import System.Process (CreateProcess(env))
+import Distribution.Simple.Utils (xargs)
+import Distribution.Compat.ResponseFile (expandResponse)
+
+data Value = Intgr Integer | Strln String | Bl Bool | Empt | Func TopDef
+data BlokValue = EReturn Value | EBreak | EContinue | EEmpty
+
+type Location = Int
+type Env = M.Map Ident Location -- nazwa, lokacja
+type Store = M.Map Location Value -- lokacja, wartość
+type RSE a = ReaderT Env (StateT Store (ExceptT String IO)) a
+
+evalMaybe :: String -> Maybe a -> RSE a
+evalMaybe s Nothing = throwError s
+evalMaybe s (Just a) = return a
+
+evalExpr :: Expr -> RSE Value
+
+
+setupArgs :: BNFC'Position -> [Arg] -> [Expr] -> Env -> RSE Env
+setupArgs pos (a:args) (e:exprs) env = do
+  case a of
+    Argcopy _ typ name -> do
+        v <- evalExpr e
+        loc <- alloc
+        modify (M.insert loc v)
+        setupArgs pos args exprs (M.insert name loc env)
+    Argref _ typ nameArg -> do
+        case e of
+            EVar pos typ nameExpr -> do
+                loc <- evalMaybe "Variable doesn't exists" (M.lookup nameExpr env)
+                setupArgs pos args exprs (M.insert nameArg loc env)
+            _ -> throwError "Argument is not a reference"
+setupArgs pos (n:no) _ _ = do throwError "Not enough arguments"
+setupArgs pos _ (e:eo) _ = do throwError "Too many arguments"
+setupArgs _ _ _ env = do return env
+
+unpackFunction :: TopDef -> ([Arg], [Stmt])
+unpackFunction (FnDef pos typ name argsFn (Block _ blok)) = (argsFn, blok)
+
+evalExpr (EVar pos typ name) = do
+    env <- ask
+    s   <- get
+    loc <- evalMaybe "Undefined variable " (M.lookup name env)
+    evalMaybe "Undefined variable " (M.lookup loc s)
+evalExpr (ELitInt _ n) = return (Intgr n)
+evalExpr (ELitTrue _) = return (Bl True)
+evalExpr (ELitFalse _) = return (Bl False)
+evalExpr (EApp pos typ name args) = do
+    env <- ask
+    s   <- get
+    loc <- evalMaybe "Undefined function" (M.lookup name env)
+    fn  <- evalMaybe "Undefined function" (M.lookup loc s)
+    case fn of
+        Func x ->
+            let (argsFn, blok) = unpackFunction x in
+                do
+                nenv <- setupArgs pos argsFn args env
+                local (const nenv) (evalStmtFun blok)
+        _ -> throwError "Not a function"
+
+evalExpr (EString _ str) = return (Strln str)
+evalExpr (Neg pos subexpr) = do
+    val <- evalExpr subexpr
+    case val of
+        Intgr num -> return (Intgr (num * (-1)))
+        _ -> throwError "Negation of this expression is impossible"
+evalExpr (Not pos subexpr) = do
+    val <- evalExpr subexpr
+    case val of
+         Bl num -> return (Bl (not num))
+         _ -> throwError "Boolean negation of this expression is impossible"
+evalExpr (EMul pos expr1 mulop expr2) = do
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (e1, e2, mulop) of
+        (Intgr n1, Intgr n2, Times _) -> return (Intgr $ n1 * n2)
+        (Intgr n1, Intgr n2, Div _) -> if n2 /= 0 then return (Intgr (div n1 n2)) else throwError "Div 0"
+        (Intgr n1, Intgr n2, Mod _) -> if n2 /= 0 then return (Intgr $ mod n1 n2) else throwError "Mod 0"
+        _ -> throwError "Impossible Mul Operation"
+evalExpr (EAdd pos expr1 addop expr2) = do
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (e1, e2, addop) of
+        (Intgr n1, Intgr n2, Plus _) -> return (Intgr $ n1 + n2)
+        (Intgr n1, Intgr n2, Minus _) -> return (Intgr $ n1 - n2)
+        (Strln n1, Strln n2, Plus _) -> return (Strln $ n1 ++ n2)
+        _ -> throwError "Impossible Add Operation"
+
+evalExpr (ERel pos expr1 relop expr2) = do
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (e1, e2, relop) of
+        (Intgr n1, Intgr n2, LTH _) -> return (Bl $ n1 < n2)
+        (Intgr n1, Intgr n2, LE _) -> return (Bl $ n1 <= n2)
+        (Intgr n1, Intgr n2, GTH _) -> return (Bl $ n1 > n2)
+        (Intgr n1, Intgr n2, GE _) -> return (Bl $ n1 >= n2)
+        (Intgr n1, Intgr n2, EQU _) -> return (Bl $ n1 == n2)
+        (Intgr n1, Intgr n2, NE _) -> return (Bl $ n1 /= n2)
+        (Bl n1, Bl n2, EQU _) -> return (Bl $ n1 == n2)
+        (Bl n1, Bl n2, NE _) -> return (Bl $ n1 /= n2)
+        (Strln n1, Strln n2, EQU _) -> return (Bl (n1 == n2))
+        (Strln n1, Strln n2, NE _) -> return (Bl $ (n1 /= n2))
+        _ -> throwError "Impossible Rel Operation"
+evalExpr (EAnd pos expr1 expr2) = do
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (e1, e2) of
+        (Bl n1, Bl n2) -> return (Bl (n1 && n2))
+        _ -> throwError "Impossible And Operation"
+evalExpr (EOr pos expr1 expr2) = do
+    e1 <- evalExpr expr1
+    e2 <- evalExpr expr2
+    case (e1, e2) of
+        (Bl n1, Bl n2) -> return (Bl (n1 || n2))
+        _ -> throwError "Impossible Or Operation"
+
+alloc :: RSE Location
+alloc = do
+  m <- get
+  if M.null m then return 0
+  else let (i, w) = M.findMax m in return (i+1)
+
+
+evalStmt :: [Stmt] -> RSE BlokValue
+evalStmt [] = return EEmpty
+evalStmt ((Empty pos):others) = evalStmt others
+evalStmt ((Decl pos typ name):others) = do
+    loc <- alloc
+    case typ of
+        (Int _) -> do
+                   modify (M.insert loc (Intgr 0))
+                   local (M.insert name loc) (evalStmt others)
+        (Str _) -> do
+                   modify (M.insert loc (Strln ""))
+                   local (M.insert name loc) (evalStmt others)
+        (Bool _) -> do
+                   modify (M.insert loc (Bl False))
+                   local (M.insert name loc) (evalStmt others)
+        _ -> throwError "Couldn't declare variable with this type"
+evalStmt ((Ass pos typ name expr):others) = do
+    env <- ask
+    l <- evalMaybe "Undefined variable" (M.lookup name env)
+    e1 <- evalExpr expr
+    modify (M.insert l e1)
+    evalStmt others
+evalStmt ((Incr pos typ name):others) = do
+    env <- ask
+    l   <- evalMaybe "Undefined variable" (M.lookup name env)
+    e1  <- gets (M.lookup l)
+    case e1 of
+        Just (Intgr n) -> do
+                   modify (M.insert l (Intgr (n + 1)))
+                   evalStmt others
+        _ -> throwError "Impossible to increase"
+evalStmt ((Decr pos typ name):others) = do
+    env <- ask
+    l   <- evalMaybe "Undefined variable" (M.lookup name env)
+    e1  <- gets (M.lookup l)
+    case e1 of
+        Just (Intgr n) -> do
+                   modify (M.insert l (Intgr (n - 1)))
+                   evalStmt others
+        _ -> throwError "Impossible to increase"
+evalStmt ((Ret pos expr):others) = do
+    e <- evalExpr expr
+    return (EReturn e)
+evalStmt ((Retv pos):others) = return (EReturn Empt)
+evalStmt ((Cond pos cond ifstmt):others) = do
+    e <- evalExpr cond
+    case e of
+        (Bl b) -> if b then evalStmt (ifstmt ++ others) else evalStmt others
+        _ -> throwError "Condition doesn't have boolean type"
+evalStmt ((CondElse pos cond ifstmt elsestmt):others) = do
+    e <- evalExpr cond
+    case e of
+        (Bl b) -> if b then evalStmt (ifstmt ++ others) else evalStmt (elsestmt ++ others)
+        _ -> throwError "Condition doesn't have boolean type"
+evalStmt ((While pos cond loop):others) = do
+    e <- evalExpr cond
+    case e of
+        (Bl b) -> if b then evalStmt (loop ++ While pos cond loop:others) else evalStmt others
+        _ -> throwError "Condition doesn't have boolean type"
+
+evalStmt (WhileSuspended pos cond stmt:others) = do
+    res <- evalStmt stmt
+    case res of
+        EReturn x -> return (EReturn x)
+        EBreak -> evalStmt others
+        _ -> evalStmt (WhileContinued pos cond stmt:others)
+evalStmt ((WhileContinued pos cond stmt):others) = do
+  e <- evalExpr cond
+  case e of
+        (Bl True) -> evalStmt (WhileSuspended pos cond stmt:others)
+        (Bl False) -> evalStmt others
+        _ -> throwError "not a boolean"
+evalStmt ((While pos cond stmt):others) = evalStmt (WhileContinued pos cond stmt:others)
+
+evalStmt ((For pos typ name expr1 expr2 loop):others) = do
+    loc <- alloc
+    case typ of
+        (Int _) -> do
+                   modify (M.insert loc (Intgr 0))
+                   local (M.insert name loc) (evalStmt (While pos (ERel pos expr1 (LE pos) expr2) loop:others))
+        _ -> throwError "Couldn't declare variable with this type in loop"
+
+evalStmt (SExp pos expr1:others) = do
+    e <- evalExpr expr1
+    evalStmt others
+evalStmt (Continue pos:others) = do
+    return EContinue
+evalStmt (Break pos:others) = do
+    return EBreak
+evalStmt (Print pos expr:others) = do
+    e <- evalExpr expr 
+    liftIO $ putStrLn $ showValueSimple e
+    evalStmt others 
+    
+    
+showValueSimple :: Value -> String
+showValueSimple (Intgr n) = show n
+showValueSimple (Bl b) = show b
+showValueSimple (Strln s) = show s
+showValueSimple _ = "" 
+
+
+evalStmtFun :: [Stmt] -> RSE Value
+evalStmtFun stmts = do
+    v <- evalStmt stmts
+    case v of
+        EReturn x -> return x
+        EBreak -> throwError "break may not be used outside of a loop"
+        EContinue -> throwError "continue may not be used outside of a loop"
+        EEmpty -> return Empt
+
+
+
+createVarsList :: [TopDefVar' a] -> ([Ident], [Value])
+createVarsList (x:list) =
+    case x of
+        VarDef pos (Int _) name -> (name:ids, Intgr 0:vals)
+        VarDef pos (Str _) name -> (name:ids, Strln "":vals)
+        VarDef pos (Bool _) name -> (name:ids, Bl False:vals)
+    where (ids, vals) = createVarsList list
+createVarsList [] = ([], [])
+createFuncList :: [TopDef] -> ([Ident], [Value])
+createFuncList (x:list) =
+    case x of
+        (FnDef pos typ name args block) -> (name:ids, Func x:vals)
+    where (ids, vals) = createFuncList list
+createFuncList [] = ([], [])
+
+makeEnv :: Prog -> (Env, Store)
+makeEnv (Program pos defVars defFunc block) =
+    let (varsNames, valv) = createVarsList defVars in
+        let (funcsNames, funcv) = createFuncList defFunc in
+            (M.fromList (zip (varsNames ++ funcsNames) [1..]), M.fromList (zip [1..] (valv ++ funcv)))
+
+runEval :: (r, s) -> ReaderT r (StateT s (ExceptT e m)) a -> m (Either e (a, s))
+runEval (env, state) ev  =
+    runExceptT (runStateT (runReaderT ev env) state)
+
+runEvalProgram :: Prog' BNFC'Position -> IO (Either String (Value, Store))
+runEvalProgram (Program pos var func (Block pos2 block)) = runEval (makeEnv (Program pos var func (Block pos2 block))) (evalStmtFun block)

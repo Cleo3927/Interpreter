@@ -1,0 +1,77 @@
+-- programs ------------------------------------------------
+
+entrypoints Prog ;
+Program.   Prog ::= [TopDefVar] [TopDef] "Main" "{" Blok "}" ;
+
+VarDef.    TopDefVar ::= "create" "(" Type Ident ")" ";" ;
+separator  TopDefVar "" ;
+
+FnDef.	   TopDef ::= Type Ident "(" [Arg] ")" "{" Blok "}";
+separator  TopDef "" ;
+Argcopy.   Arg ::= Type Ident ;
+Argref.    Arg ::= "&" Type Ident ;
+separator  Arg "," ;
+
+-- statements ----------------------------------------------
+
+Block.     Blok ::= [Stmt] ;
+separator  Stmt "" ;
+Empty.     Stmt ::= ";" ;
+Decl.      Stmt ::= "create" "(" Type Ident ")" ";" ;
+Ass.       Stmt ::= Type Ident "=" Expr ";" ;
+Incr.      Stmt ::= Type Ident "++" ";" ;
+Decr.      Stmt ::= Type Ident "--" ";" ;
+Ret.       Stmt ::= "return" Expr ";" ;
+Retv.      Stmt ::= "return" ";" ;
+Cond.      Stmt ::= "if" Expr "then" [Stmt] "endif" ;
+CondElse.  Stmt ::= "if" Expr "then" [Stmt] "else" [Stmt] "endif" ;
+While.     Stmt ::= "while" Expr "then" [Stmt] "endwhile" ;
+For.       Stmt ::= "for" Type Ident "=" Expr "to" Expr "then" [Stmt] "endfor" ;
+SExp.      Stmt ::= Expr ";" ;
+Continue.  Stmt ::= "continue" ";" ;
+Break.     Stmt ::= "break" ";" ;
+Print.     Stmt ::= "print" "(" Expr ")" ";" ;
+
+-- Types ---------------------------------------------------
+
+Int.       Type ::= "$" ;
+Str.       Type ::= "#" ;
+Bool.      Type ::= "'" ;
+Void.      Type ::= "@" ;
+separator  nonempty Type "," ;
+
+-- Expressions ---------------------------------------------
+
+EVar.      Expr6 ::= Type Ident ;
+ELitInt.   Expr6 ::= Integer ;
+ELitTrue.  Expr6 ::= "True" ;
+ELitFalse. Expr6 ::= "False" ;
+EApp.      Expr6 ::= Type Ident "(" [Expr] ")" ;
+EString.   Expr6 ::= String ;
+Neg.       Expr5 ::= "-" Expr6 ;
+Not.       Expr5 ::= "!" Expr6 ;
+EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
+EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
+ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
+EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
+EOr.       Expr  ::= Expr1 "||" Expr ;
+coercions  Expr 6;
+separator  Expr "," ;
+
+-- operators -----------------------------------------------
+
+Plus.      AddOp ::= "+" ;
+Minus.     AddOp ::= "-" ;
+Times.     MulOp ::= "*" ;
+Div.       MulOp ::= "/" ;
+Mod.       MulOp ::= "%" ;
+LTH.       RelOp ::= "<" ;
+LE.        RelOp ::= "<=" ;
+GTH.       RelOp ::= ">" ;
+GE.        RelOp ::= ">=" ;
+EQU.       RelOp ::= "==" ;
+NE.        RelOp ::= "!=" ;
+
+-- comments ------------------------------------------------
+
+comment    "/?" ;
