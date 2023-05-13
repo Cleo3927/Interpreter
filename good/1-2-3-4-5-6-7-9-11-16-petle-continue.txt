@@ -1,8 +1,0 @@
-Main {
-    for $a = 5 to 10 then
-    	if $a < 8 then 
-    		continue;
-    	endif
-    	print($a);
-    endfor
-}

@@ -55,19 +55,16 @@ import Grammar.Lex
   'continue' { PT _ (TS _ 30) }
   'create'   { PT _ (TS _ 31) }
   'else'     { PT _ (TS _ 32) }
-  'endfor'   { PT _ (TS _ 33) }
-  'endif'    { PT _ (TS _ 34) }
-  'endwhile' { PT _ (TS _ 35) }
-  'for'      { PT _ (TS _ 36) }
-  'if'       { PT _ (TS _ 37) }
-  'print'    { PT _ (TS _ 38) }
-  'return'   { PT _ (TS _ 39) }
-  'then'     { PT _ (TS _ 40) }
-  'to'       { PT _ (TS _ 41) }
-  'while'    { PT _ (TS _ 42) }
-  '{'        { PT _ (TS _ 43) }
-  '||'       { PT _ (TS _ 44) }
-  '}'        { PT _ (TS _ 45) }
+  'endif'    { PT _ (TS _ 33) }
+  'endwhile' { PT _ (TS _ 34) }
+  'if'       { PT _ (TS _ 35) }
+  'print'    { PT _ (TS _ 36) }
+  'return'   { PT _ (TS _ 37) }
+  'then'     { PT _ (TS _ 38) }
+  'while'    { PT _ (TS _ 39) }
+  '{'        { PT _ (TS _ 40) }
+  '||'       { PT _ (TS _ 41) }
+  '}'        { PT _ (TS _ 42) }
   L_Ident    { PT _ (TV _)    }
   L_integ    { PT _ (TI _)    }
   L_quoted   { PT _ (TL _)    }
@@ -136,7 +133,6 @@ Stmt
   | 'if' Expr 'then' ListStmt 'endif' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Cond (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
   | 'if' Expr 'then' ListStmt 'else' ListStmt 'endif' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.CondElse (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4) (snd $6)) }
   | 'while' Expr 'then' ListStmt 'endwhile' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.While (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
-  | 'for' Type Ident '=' Expr 'to' Expr 'then' ListStmt 'endfor' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.For (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $5) (snd $7) (snd $9)) }
   | Expr ';' { (fst $1, Grammar.Abs.SExp (fst $1) (snd $1)) }
   | 'continue' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Continue (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'break' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Break (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }

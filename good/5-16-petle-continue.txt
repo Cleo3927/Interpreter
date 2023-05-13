@@ -1,0 +1,10 @@
+Main {
+	create($a);
+	$a = 5
+    while $a <= 10 then
+    	if $a < 8 then 
+    		continue;
+    	endif
+    	print($a);
+    endwhile
+}

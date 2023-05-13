@@ -4598,26 +4598,25 @@ eitherResIdent tv s = treeFind resWords
 -- | The keywords and symbols of the language organized as binary search tree.
 resWords :: BTree
 resWords =
-  b ">" 23
-    (b "+" 12
+  b "==" 22
+    (b "*" 11
        (b "&" 6
           (b "#" 3 (b "!=" 2 (b "!" 1 N N) N) (b "%" 5 (b "$" 4 N N) N))
-          (b "(" 9 (b "'" 8 (b "&&" 7 N N) N) (b "*" 11 (b ")" 10 N N) N)))
-       (b ";" 18
-          (b "-" 15
-             (b "," 14 (b "++" 13 N N) N) (b "/" 17 (b "--" 16 N N) N))
-          (b "=" 21 (b "<=" 20 (b "<" 19 N N) N) (b "==" 22 N N))))
-    (b "endwhile" 35
-       (b "break" 29
-          (b "False" 26
-             (b "@" 25 (b ">=" 24 N N) N) (b "True" 28 (b "Main" 27 N N) N))
-          (b "else" 32
-             (b "create" 31 (b "continue" 30 N N) N)
-             (b "endif" 34 (b "endfor" 33 N N) N)))
-       (b "to" 41
-          (b "print" 38
-             (b "if" 37 (b "for" 36 N N) N) (b "then" 40 (b "return" 39 N N) N))
-          (b "||" 44 (b "{" 43 (b "while" 42 N N) N) (b "}" 45 N N))))
+          (b "(" 9 (b "'" 8 (b "&&" 7 N N) N) (b ")" 10 N N)))
+       (b "/" 17
+          (b "," 14
+             (b "++" 13 (b "+" 12 N N) N) (b "--" 16 (b "-" 15 N N) N))
+          (b "<=" 20 (b "<" 19 (b ";" 18 N N) N) (b "=" 21 N N))))
+    (b "endif" 33
+       (b "True" 28
+          (b "@" 25
+             (b ">=" 24 (b ">" 23 N N) N) (b "Main" 27 (b "False" 26 N N) N))
+          (b "create" 31
+             (b "continue" 30 (b "break" 29 N N) N) (b "else" 32 N N)))
+       (b "then" 38
+          (b "print" 36
+             (b "if" 35 (b "endwhile" 34 N N) N) (b "return" 37 N N))
+          (b "||" 41 (b "{" 40 (b "while" 39 N N) N) (b "}" 42 N N))))
   where
   b s n = B bs (TS bs n)
     where

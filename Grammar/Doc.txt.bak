@@ -78,8 +78,8 @@ All other symbols are terminals.
   |  |  **|**  | ``return`` ``;``
   |  |  **|**  | ``if`` //Expr// ``then`` //[Stmt]// ``endif``
   |  |  **|**  | ``if`` //Expr// ``then`` //[Stmt]// ``else`` //[Stmt]// ``endif``
-  |  |  **|**  | ``while`` //Expr// ``then`` //[Expr]// ``endwhile``
-  |  |  **|**  | ``for`` //Type// //Ident// ``=`` //Expr// ``to`` //Expr// ``then`` //[Expr]// ``endfor``
+  |  |  **|**  | ``while`` //Expr// ``then`` //[Stmt]// ``endwhile``
+  |  |  **|**  | ``for`` //Type// //Ident// ``=`` //Expr// ``to`` //Expr// ``then`` //[Stmt]// ``endfor``
   |  |  **|**  | //Expr// ``;``
   |  |  **|**  | ``continue`` ``;``
   |  |  **|**  | ``break`` ``;``

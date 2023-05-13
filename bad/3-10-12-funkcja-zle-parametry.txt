@@ -1,0 +1,7 @@
+@Funkcja(#s) {
+	print(#s);
+}
+
+Main {
+	@Funkcja(5 + 2);
+}

@@ -7,7 +7,8 @@ import Grammar.Lex   ( Token, mkPosToken )
 import Grammar.Par   ( pProg, myLexer )
 import Grammar.Print ( Print, printTree )
 import Grammar.Skel  ()
-import Eval as E
+import Eval as E ( Value(Empt), runEvalProgram )
+import Checker as C ( ValueType(VEmpt), runCheckProgram )
 import GHC.IO.FD (stderr)
 import Data.ByteString.Char8
 
@@ -25,20 +26,27 @@ runProg :: Prog -> IO ()
 runProg tree = do
   res <- E.runEvalProgram tree
   case res of
-    Right (Empt, _) -> exitSuccess
+    Right (E.Empt, _) -> exitSuccess
     Left msg -> do
-      Prelude.putStrLn msg
+      error msg
       exitFailure
-        -- _ -> exitFailure
+runCheck :: Prog -> IO ()
+runCheck tree = 
+  let res = C.runCheckProgram tree in 
+    case res of
+    Left msg -> do
+      error msg
+      exitFailure
+    _ -> pure ()
 
 run :: ParseFun Prog -> String -> IO ()
 run p s =
   case p ts of
     Left err -> do
-      Prelude.putStrLn "\nParse              Failed...\n"
-      Prelude.putStrLn err
+      error err
       exitFailure
-    Right tree -> do
+    Right tree -> do 
+      runCheck tree
       runProg tree
   where
     ts = myLexer s

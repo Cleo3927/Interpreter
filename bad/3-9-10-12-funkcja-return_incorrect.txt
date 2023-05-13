@@ -1,0 +1,10 @@
+#Func() {
+	create($a);
+	$a = 5;
+	print($a);
+	return $a;
+}
+
+Main {
+	#Func();
+}

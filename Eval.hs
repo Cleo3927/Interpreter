@@ -209,16 +209,6 @@ evalStmt ((WhileContinued pos cond stmt):others) = do
         _ -> throwError ("Not a boolean" ++ printErr pos)
 evalStmt ((While pos cond stmt):others) = evalStmt (WhileContinued pos cond stmt:others)
 
-evalStmt ((For pos typ name expr1 expr2 loop):others) = do
-    loc <- alloc
-    e1 <- evalExpr expr1
-    e2 <- evalExpr expr2
-    case (typ, e1, e2) of
-        (Int _, Intgr n1, Intgr n2) -> do
-            modify (M.insert loc (Intgr n1))
-            local (M.insert name loc) (evalStmt (Decr pos typ name:(While pos (ERel pos (EVar pos typ name) (LTH pos) expr2) (Incr pos typ name:loop):others)))
-        _ -> throwError ("Variables aren't integers " ++ printErr pos)
-
 evalStmt (SExp pos expr1:others) = do
     e <- evalExpr expr1
     evalStmt others

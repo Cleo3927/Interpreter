@@ -26,7 +26,6 @@ Retv.      Stmt ::= "return" ";" ;
 Cond.      Stmt ::= "if" Expr "then" [Stmt] "endif" ;
 CondElse.  Stmt ::= "if" Expr "then" [Stmt] "else" [Stmt] "endif" ;
 While.     Stmt ::= "while" Expr "then" [Stmt] "endwhile" ;
-For.       Stmt ::= "for" Type Ident "=" Expr "to" Expr "then" [Stmt] "endfor" ;
 SExp.      Stmt ::= Expr ";" ;
 Continue.  Stmt ::= "continue" ";" ;
 Break.     Stmt ::= "break" ";" ;

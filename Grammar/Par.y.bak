@@ -135,8 +135,8 @@ Stmt
   | 'return' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Retv (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'if' Expr 'then' ListStmt 'endif' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Cond (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
   | 'if' Expr 'then' ListStmt 'else' ListStmt 'endif' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.CondElse (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4) (snd $6)) }
-  | 'while' Expr 'then' ListExpr 'endwhile' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.While (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
-  | 'for' Type Ident '=' Expr 'to' Expr 'then' ListExpr 'endfor' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.For (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $5) (snd $7) (snd $9)) }
+  | 'while' Expr 'then' ListStmt 'endwhile' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.While (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $4)) }
+  | 'for' Type Ident '=' Expr 'to' Expr 'then' ListStmt 'endfor' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.For (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $5) (snd $7) (snd $9)) }
   | Expr ';' { (fst $1, Grammar.Abs.SExp (fst $1) (snd $1)) }
   | 'continue' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Continue (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'break' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Break (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
