@@ -51,19 +51,13 @@ run p s =
   where
     ts = myLexer s
 
-showTree :: (Show a, Print a) => Int -> a -> IO ()
-showTree v tree = do
-  putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-  putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
-
 usage :: IO ()
 usage = do
   Prelude.putStrLn $ Prelude.unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
     , "  (no arguments)  Parse stdin verbosely."
-    , "  (files)         Parse content of files verbosely."
-    , "  -s (files)      Silent mode. Parse content of files silently."
+    , "  (file)         Parse content of file verbosely."
     ]
 
 main :: IO ()
@@ -72,6 +66,5 @@ main = do
   case args of
     ["--help"] -> usage
     []         -> Prelude.getContents >>= run pProg
-    "-s":fs    -> mapM_ (runFile pProg) fs
     fs         -> mapM_ (runFile pProg) fs
 

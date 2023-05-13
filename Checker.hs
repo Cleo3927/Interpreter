@@ -22,6 +22,15 @@ type FuncStore = M.Map Ident TopDef
 
 evalExpr :: Expr -> FuncStore -> Except String ValueType
 
+takeName :: Type' a -> Ident -> Ident
+takeName typ name =
+    case (typ, name) of
+        (Int _, Ident s) -> Ident ("$" ++ s)
+        (Bool _, Ident s) -> Ident ("'" ++ s)
+        (Str _, Ident s) -> Ident ("#" ++ s)
+        (Void _, Ident s) -> Ident ("@" ++ s)
+
+
 evalMaybe :: String -> Maybe a -> Except String a
 evalMaybe s Nothing = throwError s
 evalMaybe s (Just a) = return a
@@ -30,7 +39,7 @@ printErr :: BNFC'Position -> String
 printErr Nothing = ""
 printErr (Just (line, col)) = " in line " ++ show line
 
-unpackFunction :: MonadError [Char] m => BNFC'Position -> Maybe (TopDef' a) -> m [Arg' a]
+unpackFunction :: BNFC'Position -> Maybe (TopDef' a) -> Except String [Arg' a]
 unpackFunction pos2 (Just (FnDef pos typ name argsFn (Block _ blok))) = return argsFn
 unpackFunction pos Nothing = throwError ("Undeclared Function" ++ printErr pos)
 
@@ -59,7 +68,7 @@ evalExpr (ELitInt _ n) _ = return VIntgr
 evalExpr (ELitTrue _) _ = return VBl
 evalExpr (ELitFalse _) _ = return VBl
 evalExpr (EApp pos typ name args) functions = do
-    f <- unpackFunction pos (M.lookup name functions)
+    f <- unpackFunction pos (M.lookup (takeName typ name) functions)
     res <- cmpTypes pos args f functions
     case typ of
         Int _ -> return VIntgr
@@ -225,7 +234,7 @@ checkFunctions (FnDef pos typ name args (Block _ block):funcs) functions = do
 
 makeFunctionsRes :: [TopDef' a] -> [(Ident, TopDef' a)]
 makeFunctionsRes [] = []
-makeFunctionsRes (FnDef pos typ name args block:funcs) = (name, FnDef pos typ name args block):makeFunctionsRes funcs
+makeFunctionsRes (FnDef pos typ name args block:funcs) = (takeName typ name, FnDef pos typ name args block):makeFunctionsRes funcs
 
 runCheckProgram :: Prog' BNFC'Position -> Either String Bool
 runCheckProgram (Program pos var func (Block pos2 block)) = do
