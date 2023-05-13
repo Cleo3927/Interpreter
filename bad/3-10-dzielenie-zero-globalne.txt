@@ -1,0 +1,7 @@
+create($b);
+
+Main {
+	create($a);
+	$a = 5;
+	print($a / $b);
+}

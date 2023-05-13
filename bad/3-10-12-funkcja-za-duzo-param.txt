@@ -1,0 +1,7 @@
+@Funkcja(#s) {
+	print(#s);
+}
+
+Main {
+	@Funkcja("Hello", "World!");
+}

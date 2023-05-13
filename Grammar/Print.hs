@@ -190,7 +190,6 @@ instance Print (Grammar.Abs.Stmt' a) where
     Grammar.Abs.Cond _ expr stmts -> prPrec i 0 (concatD [doc (showString "if"), prt 0 expr, doc (showString "then"), prt 0 stmts, doc (showString "endif")])
     Grammar.Abs.CondElse _ expr stmts1 stmts2 -> prPrec i 0 (concatD [doc (showString "if"), prt 0 expr, doc (showString "then"), prt 0 stmts1, doc (showString "else"), prt 0 stmts2, doc (showString "endif")])
     Grammar.Abs.While _ expr stmts -> prPrec i 0 (concatD [doc (showString "while"), prt 0 expr, doc (showString "then"), prt 0 stmts, doc (showString "endwhile")])
-    Grammar.Abs.For _ type_ id_ expr1 expr2 stmts -> prPrec i 0 (concatD [doc (showString "for"), prt 0 type_, prt 0 id_, doc (showString "="), prt 0 expr1, doc (showString "to"), prt 0 expr2, doc (showString "then"), prt 0 stmts, doc (showString "endfor")])
     Grammar.Abs.SExp _ expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
     Grammar.Abs.Continue _ -> prPrec i 0 (concatD [doc (showString "continue"), doc (showString ";")])
     Grammar.Abs.Break _ -> prPrec i 0 (concatD [doc (showString "break"), doc (showString ";")])

@@ -7,52 +7,57 @@ import Grammar.Lex   ( Token, mkPosToken )
 import Grammar.Par   ( pProg, myLexer )
 import Grammar.Print ( Print, printTree )
 import Grammar.Skel  ()
-import Eval as E
+import Eval as E ( Value(Empt), runEvalProgram )
+import Checker as C ( ValueType(VEmpt), runCheckProgram )
+import GHC.IO.FD (stderr)
+import Data.ByteString.Char8
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
 type Verbosity  = Int
 
 putStrV :: Verbosity -> String -> IO ()
-putStrV v s = when (v > 1) $ putStrLn s
+putStrV v s = when (v > 1) $ Prelude.putStrLn s
 
 runFile :: ParseFun Prog -> FilePath -> IO ()
-runFile p f = putStrLn f >> readFile f >>= run p
+runFile p f = Prelude.putStrLn f >> Prelude.readFile f >>= run p
+
+runProg :: Prog -> IO ()
+runProg tree = do
+  res <- E.runEvalProgram tree
+  case res of
+    Right (E.Empt, _) -> exitSuccess
+    Left msg -> do
+      error msg
+      exitFailure
+runCheck :: Prog -> IO ()
+runCheck tree = 
+  let res = C.runCheckProgram tree in 
+    case res of
+    Left msg -> do
+      error msg
+      exitFailure
+    _ -> pure ()
 
 run :: ParseFun Prog -> String -> IO ()
 run p s =
   case p ts of
     Left err -> do
-      putStrLn "\nParse              Failed...\n"
-      putStrLn err
+      error err
       exitFailure
-    Right tree -> do
-      E.runEvalProgram tree
-      exitSuccess
-	--   case res of
-        -- Right Empty     -> exitSuccess
-        -- Right (Intgr x) -> if x /= 0 then exitWith (ExitFailure (fromInteger x)) else exitSuccess
-        -- Left msg        -> do
-    	--   hPutStrLn stderr ("Error: " ++ msg)
-        -- --   exitFailure
-        -- _ -> exitFailure
+    Right tree -> do 
+      runCheck tree
+      runProg tree
   where
-	ts = myLexer s
-	showPosToken ((l,c),t) = concat [ show l, ":", show c, "\t", show t ]
-
-showTree :: (Show a, Print a) => Int -> a -> IO ()
-showTree v tree = do
-  putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-  putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
+    ts = myLexer s
 
 usage :: IO ()
 usage = do
-  putStrLn $ unlines
+  Prelude.putStrLn $ Prelude.unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
     , "  (no arguments)  Parse stdin verbosely."
-    , "  (files)         Parse content of files verbosely."
-    , "  -s (files)      Silent mode. Parse content of files silently."
+    , "  (file)         Parse content of file verbosely."
     ]
 
 main :: IO ()
@@ -60,7 +65,6 @@ main = do
   args <- getArgs
   case args of
     ["--help"] -> usage
-    []         -> getContents >>= run pProg
-    "-s":fs    -> mapM_ (runFile pProg) fs
+    []         -> Prelude.getContents >>= run pProg
     fs         -> mapM_ (runFile pProg) fs
 

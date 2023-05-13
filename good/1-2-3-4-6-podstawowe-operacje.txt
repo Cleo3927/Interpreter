@@ -1,0 +1,15 @@
+create(#s);
+
+Main {
+    create($a);
+    $a = 5;
+    print($a);
+    print($a + 4);
+    
+    #s = "aaa";
+    print(#s);
+    
+    print(2 == 5);
+    
+    print(2 + 3 == 5);
+}

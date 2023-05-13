@@ -50,9 +50,8 @@ data Stmt' a
     | Cond a (Expr' a) [Stmt' a]
     | CondElse a (Expr' a) [Stmt' a] [Stmt' a]
     | While a (Expr' a) [Stmt' a]
-    | WhileSuspended a (Expr' a) [Stmt' a] 
-    | WhileContinued a (Expr' a) [Stmt' a] 
-    | For a (Type' a) Ident (Expr' a) (Expr' a) [Stmt' a]
+    | WhileContinued a (Expr' a) [Stmt' a]
+    | WhileSuspended a (Expr' a) [Stmt' a]
     | SExp a (Expr' a)
     | Continue a
     | Break a
@@ -143,7 +142,6 @@ instance HasPosition Stmt where
     Cond p _ _ -> p
     CondElse p _ _ _ -> p
     While p _ _ -> p
-    For p _ _ _ _ _ -> p
     SExp p _ -> p
     Continue p -> p
     Break p -> p

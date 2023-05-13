@@ -194,7 +194,7 @@ instance Print (Grammar.Abs.Stmt' a) where
     Grammar.Abs.SExp _ expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
     Grammar.Abs.Continue _ -> prPrec i 0 (concatD [doc (showString "continue"), doc (showString ";")])
     Grammar.Abs.Break _ -> prPrec i 0 (concatD [doc (showString "break"), doc (showString ";")])
-    Grammar.Abs.Print _ expr -> prPrec i 0 (concatD [doc (showString "print("), prt 0 expr, doc (showString ");")])
+    Grammar.Abs.Print _ expr -> prPrec i 0 (concatD [doc (showString "print"), doc (showString "("), prt 0 expr, doc (showString ")"), doc (showString ";")])
 
 instance Print (Grammar.Abs.Type' a) where
   prt i = \case

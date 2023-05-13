@@ -96,13 +96,20 @@ All other symbols are terminals.
   |  |  **|**  | ``False``
   |  |  **|**  | //Type// //Ident// ``(`` //[Expr]// ``)``
   |  |  **|**  | //String//
+  |  |  **|**  | ``(`` //Expr// ``)``
   | //Expr5// | -> | ``-`` //Expr6//
   |  |  **|**  | ``!`` //Expr6//
+  |  |  **|**  | //Expr6//
   | //Expr4// | -> | //Expr4// //MulOp// //Expr5//
+  |  |  **|**  | //Expr5//
   | //Expr3// | -> | //Expr3// //AddOp// //Expr4//
+  |  |  **|**  | //Expr4//
   | //Expr2// | -> | //Expr2// //RelOp// //Expr3//
+  |  |  **|**  | //Expr3//
   | //Expr1// | -> | //Expr2// ``&&`` //Expr1//
+  |  |  **|**  | //Expr2//
   | //Expr// | -> | //Expr1// ``||`` //Expr//
+  |  |  **|**  | //Expr1//
   | //[Expr]// | -> | **eps**
   |  |  **|**  | //Expr//
   |  |  **|**  | //Expr// ``,`` //[Expr]//

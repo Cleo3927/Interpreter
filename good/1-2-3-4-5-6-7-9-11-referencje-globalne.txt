@@ -1,0 +1,22 @@
+create($global);
+
+@updateGlobal() {
+	$global++;
+}
+
+@word(&#s) {
+	#s = #s + "World!";
+	print(#s);
+}
+
+Main {
+	$global++;
+	@updateGlobal();
+	print($global);
+		
+	create(#slowo);
+	#slowo = "Hello ";
+	print(#slowo);
+	@word(#slowo);
+	print(#slowo);
+}

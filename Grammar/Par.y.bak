@@ -162,31 +162,38 @@ Expr6
   | 'False' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.ELitFalse (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | Type Ident '(' ListExpr ')' { (fst $1, Grammar.Abs.EApp (fst $1) (snd $1) (snd $2) (snd $4)) }
   | String { (fst $1, Grammar.Abs.EString (fst $1) (snd $1)) }
+  | '(' Expr ')' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), (snd $2)) }
 
 Expr5 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr5
   : '-' Expr6 { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Neg (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2)) }
   | '!' Expr6 { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Not (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2)) }
+  | Expr6 { (fst $1, (snd $1)) }
 
 Expr4 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr4
   : Expr4 MulOp Expr5 { (fst $1, Grammar.Abs.EMul (fst $1) (snd $1) (snd $2) (snd $3)) }
+  | Expr5 { (fst $1, (snd $1)) }
 
 Expr3 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr3
   : Expr3 AddOp Expr4 { (fst $1, Grammar.Abs.EAdd (fst $1) (snd $1) (snd $2) (snd $3)) }
+  | Expr4 { (fst $1, (snd $1)) }
 
 Expr2 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr2
   : Expr2 RelOp Expr3 { (fst $1, Grammar.Abs.ERel (fst $1) (snd $1) (snd $2) (snd $3)) }
+  | Expr3 { (fst $1, (snd $1)) }
 
 Expr1 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr1
   : Expr2 '&&' Expr1 { (fst $1, Grammar.Abs.EAnd (fst $1) (snd $1) (snd $3)) }
+  | Expr2 { (fst $1, (snd $1)) }
 
 Expr :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr
   : Expr1 '||' Expr { (fst $1, Grammar.Abs.EOr (fst $1) (snd $1) (snd $3)) }
+  | Expr1 { (fst $1, (snd $1)) }
 
 ListExpr :: { (Grammar.Abs.BNFC'Position, [Grammar.Abs.Expr]) }
 ListExpr
