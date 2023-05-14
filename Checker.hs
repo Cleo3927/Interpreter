@@ -22,13 +22,13 @@ type FuncStore = M.Map Ident TopDef
 
 evalExpr :: Expr -> FuncStore -> Except String ValueType
 
-takeName :: Type' a -> Ident -> Ident
-takeName typ name =
+takeName :: [Char] -> Type' a -> Ident -> Ident
+takeName prefix typ name =
     case (typ, name) of
-        (Int _, Ident s) -> Ident ("$" ++ s)
-        (Bool _, Ident s) -> Ident ("'" ++ s)
-        (Str _, Ident s) -> Ident ("#" ++ s)
-        (Void _, Ident s) -> Ident ("@" ++ s)
+        (Int _, Ident s) -> Ident (prefix ++ "$" ++ s)
+        (Bool _, Ident s) -> Ident (prefix ++ "'" ++ s)
+        (Str _, Ident s) -> Ident (prefix ++ "#" ++ s)
+        (Void _, Ident s) -> Ident (prefix ++ "@" ++ s)
 
 
 evalMaybe :: String -> Maybe a -> Except String a
@@ -68,7 +68,7 @@ evalExpr (ELitInt _ n) _ = return VIntgr
 evalExpr (ELitTrue _) _ = return VBl
 evalExpr (ELitFalse _) _ = return VBl
 evalExpr (EApp pos typ name args) functions = do
-    f <- unpackFunction pos (M.lookup (takeName typ name) functions)
+    f <- unpackFunction pos (M.lookup (takeName "Fun" typ name) functions)
     res <- cmpTypes pos args f functions
     case typ of
         Int _ -> return VIntgr
@@ -234,7 +234,7 @@ checkFunctions (FnDef pos typ name args (Block _ block):funcs) functions = do
 
 makeFunctionsRes :: [TopDef' a] -> [(Ident, TopDef' a)]
 makeFunctionsRes [] = []
-makeFunctionsRes (FnDef pos typ name args block:funcs) = (takeName typ name, FnDef pos typ name args block):makeFunctionsRes funcs
+makeFunctionsRes (FnDef pos typ name args block:funcs) = (takeName "Fun" typ name, FnDef pos typ name args block):makeFunctionsRes funcs
 
 runCheckProgram :: Prog' BNFC'Position -> Either String Bool
 runCheckProgram (Program pos var func (Block pos2 block)) = do

@@ -5,6 +5,7 @@ Implementacja Typecheckera znajduje się w pliku Checker.hs. Jego zadaniem jest 
 - sprawdzanie zwracanych typow przez funkcje
 - sprawdzanie czy funkcja zwraca parametry
 - sprawdzanie poprawności parametrów funkcji
+Zmienne różnych typów i funkcje mogą mieć te same nazwy: np funkcja "$a()" i zmienna $a
 
 Iplementacja wykonywania wyrażeń znajduje się w pliku Eval.hs.
 

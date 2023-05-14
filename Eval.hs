@@ -25,13 +25,13 @@ type Env = M.Map Ident Location -- nazwa, lokacja
 type Store = M.Map Location Value -- lokacja, wartość
 type RSE a = ReaderT Env (StateT Store (ExceptT String IO)) a
 
-takeName :: Type' a -> Ident -> Ident
-takeName typ name =
+takeName :: [Char] -> Type' a -> Ident -> Ident
+takeName prefix typ name =
     case (typ, name) of
-        (Int _, Ident s) -> Ident ("$" ++ s)
-        (Bool _, Ident s) -> Ident ("'" ++ s)
-        (Str _, Ident s) -> Ident ("#" ++ s)
-        (Void _, Ident s) -> Ident ("@" ++ s)
+        (Int _, Ident s) -> Ident (prefix ++ "$" ++ s)
+        (Bool _, Ident s) -> Ident (prefix ++ "'" ++ s)
+        (Str _, Ident s) -> Ident (prefix ++ "#" ++ s)
+        (Void _, Ident s) -> Ident (prefix ++ "@" ++ s)
 
 evalMaybe :: String -> Maybe a -> RSE a
 evalMaybe s Nothing = throwError s
@@ -50,12 +50,12 @@ setupArgs pos (a:args) (e:exprs) env = do
         v <- evalExpr e
         loc <- alloc
         modify (M.insert loc v)
-        setupArgs pos args exprs (M.insert (takeName typ name) loc env)
+        setupArgs pos args exprs (M.insert (takeName "" typ name) loc env)
     Argref _ typ nameArg -> do
         case e of
             EVar pos typ nameExpr -> do
-                loc <- evalMaybe ("Variable doesn't exists" ++ printErr pos) (M.lookup (takeName typ nameExpr) env)
-                setupArgs pos args exprs (M.insert (takeName typ nameArg) loc env)
+                loc <- evalMaybe ("Variable doesn't exists" ++ printErr pos) (M.lookup (takeName "" typ nameExpr) env)
+                setupArgs pos args exprs (M.insert (takeName "" typ nameArg) loc env)
             _ -> throwError ("Argument is not a reference" ++ printErr pos)
 setupArgs pos (n:no) _ _ = do throwError ("Not enough arguments" ++ printErr pos)
 setupArgs pos _ (e:eo) _ = do throwError ("Too many arguments" ++ printErr pos)
@@ -67,7 +67,7 @@ unpackFunction (FnDef pos typ name argsFn (Block _ blok)) = (argsFn, blok)
 evalExpr (EVar pos typ name) = do
     env <- ask
     s   <- get
-    loc <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName typ name) env)
+    loc <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
     evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup loc s)
 evalExpr (ELitInt _ n) = return (Intgr n)
 evalExpr (ELitTrue _) = return (Bl True)
@@ -75,7 +75,7 @@ evalExpr (ELitFalse _) = return (Bl False)
 evalExpr (EApp pos typ name args) = do
     env <- ask
     s   <- get
-    loc <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup (takeName typ name) env)
+    loc <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup (takeName "Fun" typ name) env)
     fn  <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup loc s)
     case fn of
         Func x ->
@@ -149,22 +149,22 @@ evalStmt ((Decl pos typ name):others) = do
     case typ of
         (Int _) -> do
                    modify (M.insert loc (Intgr 0))
-                   local (M.insert (takeName typ name) loc) (evalStmt others)
+                   local (M.insert (takeName "" typ name) loc) (evalStmt others)
         (Str _) -> do
                    modify (M.insert loc (Strln ""))
-                   local (M.insert (takeName typ name) loc) (evalStmt others)
+                   local (M.insert (takeName "" typ name) loc) (evalStmt others)
         (Bool _) -> do
                    modify (M.insert loc (Bl False))
-                   local (M.insert (takeName typ name) loc) (evalStmt others)
+                   local (M.insert (takeName "" typ name) loc) (evalStmt others)
 evalStmt ((Ass pos typ name expr):others) = do
     env <- ask
-    l <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName typ name) env)
+    l <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
     e1 <- evalExpr expr
     modify (M.insert l e1)
     evalStmt others
 evalStmt ((Incr pos typ name):others) = do
     env <- ask
-    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName typ name) env)
+    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
     e1  <- gets (M.lookup l)
     case e1 of
         Just (Intgr n) -> do
@@ -173,7 +173,7 @@ evalStmt ((Incr pos typ name):others) = do
         _ -> throwError ("Impossible to increase" ++ printErr pos)
 evalStmt ((Decr pos typ name):others) = do
     env <- ask
-    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName typ name) env)
+    l   <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
     e1  <- gets (M.lookup l)
     case e1 of
         Just (Intgr n) -> do
@@ -238,15 +238,15 @@ evalStmtFun stmts = do
 createVarsList :: [TopDefVar' a] -> ([Ident], [Value])
 createVarsList (x:list) =
     case x of
-        VarDef pos (Int _) name -> (takeName (Int 0) name:ids, Intgr 0:vals)
-        VarDef pos (Str _) name -> (takeName (Str 0) name:ids, Strln "":vals)
-        VarDef pos (Bool _) name -> (takeName (Bool 0) name:ids, Bl False:vals)
+        VarDef pos (Int _) name -> (takeName "" (Int 0) name:ids, Intgr 0:vals)
+        VarDef pos (Str _) name -> (takeName "" (Str 0) name:ids, Strln "":vals)
+        VarDef pos (Bool _) name -> (takeName "" (Bool 0) name:ids, Bl False:vals)
     where (ids, vals) = createVarsList list
 createVarsList [] = ([], [])
 createFuncList :: [TopDef] -> ([Ident], [Value])
 createFuncList (x:list) =
     case x of
-        (FnDef pos typ name args block) -> (takeName typ name:ids, Func x:vals)
+        (FnDef pos typ name args block) -> (takeName "Fun" typ name:ids, Func x:vals)
     where (ids, vals) = createFuncList list
 createFuncList [] = ([], [])
 
