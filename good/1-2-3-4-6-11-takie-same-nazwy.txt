@@ -1,0 +1,11 @@
+$Func() {
+	return 5;
+}
+
+Main {
+    create($Func);
+    $Func = 3;
+    print($Func);
+    print($Func + $Func());
+    print($Func);
+}

@@ -1,0 +1,9 @@
+@Func() {
+	create($a)
+	$a = 5
+	print($a)
+}
+
+Main {
+	@Func()
+}
