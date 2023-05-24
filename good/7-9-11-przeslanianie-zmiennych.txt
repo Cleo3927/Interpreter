@@ -1,6 +1,6 @@
 create($global);
 
-@updateGlobal($global) {
+declare @updateGlobal($global) {
 	$global++;
 	
 	print($global);

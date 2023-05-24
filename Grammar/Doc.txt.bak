@@ -31,10 +31,9 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in grammar are the following:
   | ``False`` | ``Main`` | ``True`` | ``break``
-  | ``continue`` | ``create`` | ``else`` | ``endfor``
-  | ``endif`` | ``endwhile`` | ``for`` | ``if``
-  | ``print`` | ``return`` | ``then`` | ``to``
-  | ``while`` |  |  |
+  | ``continue`` | ``create`` | ``declare`` | ``else``
+  | ``endif`` | ``endwhile`` | ``if`` | ``print``
+  | ``return`` | ``then`` | ``while`` |
 
 The symbols used in grammar are the following:
   | { | } | ( | )
@@ -58,7 +57,7 @@ All other symbols are terminals.
   | //TopDefVar// | -> | ``create`` ``(`` //Type// //Ident// ``)`` ``;``
   | //[TopDefVar]// | -> | **eps**
   |  |  **|**  | //TopDefVar// //[TopDefVar]//
-  | //TopDef// | -> | //Type// //Ident// ``(`` //[Arg]// ``)`` ``{`` //Blok// ``}``
+  | //TopDef// | -> | ``declare`` //Type// //Ident// ``(`` //[Arg]// ``)`` ``{`` //Blok// ``}``
   | //[TopDef]// | -> | **eps**
   |  |  **|**  | //TopDef// //[TopDef]//
   | //Arg// | -> | //Type// //Ident//
@@ -71,6 +70,7 @@ All other symbols are terminals.
   |  |  **|**  | //Stmt// //[Stmt]//
   | //Stmt// | -> | ``;``
   |  |  **|**  | ``create`` ``(`` //Type// //Ident// ``)`` ``;``
+  |  |  **|**  | //TopDef//
   |  |  **|**  | //Type// //Ident// ``=`` //Expr// ``;``
   |  |  **|**  | //Type// //Ident// ``++`` ``;``
   |  |  **|**  | //Type// //Ident// ``--`` ``;``
@@ -79,7 +79,6 @@ All other symbols are terminals.
   |  |  **|**  | ``if`` //Expr// ``then`` //[Stmt]// ``endif``
   |  |  **|**  | ``if`` //Expr// ``then`` //[Stmt]// ``else`` //[Stmt]// ``endif``
   |  |  **|**  | ``while`` //Expr// ``then`` //[Stmt]// ``endwhile``
-  |  |  **|**  | ``for`` //Type// //Ident// ``=`` //Expr// ``to`` //Expr// ``then`` //[Stmt]// ``endfor``
   |  |  **|**  | //Expr// ``;``
   |  |  **|**  | ``continue`` ``;``
   |  |  **|**  | ``break`` ``;``

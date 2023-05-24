@@ -1,0 +1,24 @@
+create($global);
+
+declare @updateGlobal($global) {
+	$global++;
+	print($global);
+	
+	create($global);
+	
+	print($global);
+	
+	$global = 2;
+	
+	print($global);
+}
+
+Main {
+	print($global);
+	$global++;
+	print($global);
+	
+	@updateGlobal(5);
+	
+	print($global);
+}

@@ -43,7 +43,8 @@ transBlok x = case x of
 transStmt :: Show a => Grammar.Abs.Stmt' a -> Result
 transStmt x = case x of
   Grammar.Abs.Empty _ -> failure x
-  Grammar.Abs.Decl _ type_ ident -> failure x
+  Grammar.Abs.Decl _ topdefvar -> failure x
+  Grammar.Abs.DeclFun _ topdef -> failure x
   Grammar.Abs.Ass _ type_ ident expr -> failure x
   Grammar.Abs.Incr _ type_ ident -> failure x
   Grammar.Abs.Decr _ type_ ident -> failure x
@@ -52,6 +53,8 @@ transStmt x = case x of
   Grammar.Abs.Cond _ expr stmts -> failure x
   Grammar.Abs.CondElse _ expr stmts1 stmts2 -> failure x
   Grammar.Abs.While _ expr stmts -> failure x
+  Grammar.Abs.WhileSuspended _ expr stmts -> failure x
+  Grammar.Abs.WhileContinued _ expr stmts -> failure x
   Grammar.Abs.SExp _ expr -> failure x
   Grammar.Abs.Continue _ -> failure x
   Grammar.Abs.Break _ -> failure x

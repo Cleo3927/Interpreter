@@ -41,7 +41,8 @@ data Blok' a = Block a [Stmt' a]
 type Stmt = Stmt' BNFC'Position
 data Stmt' a
     = Empty a
-    | Decl a (Type' a) Ident
+    | Decl a (TopDefVar' a)
+    | DeclFun a (TopDef' a)
     | Ass a (Type' a) Ident (Expr' a)
     | Incr a (Type' a) Ident
     | Decr a (Type' a) Ident
@@ -50,8 +51,8 @@ data Stmt' a
     | Cond a (Expr' a) [Stmt' a]
     | CondElse a (Expr' a) [Stmt' a] [Stmt' a]
     | While a (Expr' a) [Stmt' a]
-    | WhileContinued a (Expr' a) [Stmt' a]
     | WhileSuspended a (Expr' a) [Stmt' a]
+    | WhileContinued a (Expr' a) [Stmt' a]
     | SExp a (Expr' a)
     | Continue a
     | Break a
@@ -133,7 +134,8 @@ instance HasPosition Blok where
 instance HasPosition Stmt where
   hasPosition = \case
     Empty p -> p
-    Decl p _ _ -> p
+    Decl p _ -> p
+    DeclFun p _ -> p
     Ass p _ _ _ -> p
     Incr p _ _ -> p
     Decr p _ _ -> p
@@ -142,6 +144,8 @@ instance HasPosition Stmt where
     Cond p _ _ -> p
     CondElse p _ _ _ -> p
     While p _ _ -> p
+    WhileSuspended p _ _ -> p
+    WhileContinued p _ _ -> p
     SExp p _ -> p
     Continue p -> p
     Break p -> p

@@ -1,0 +1,13 @@
+declare #Func() {
+	create($a);
+	$a = 5;
+	print($a);
+	return "Hello";
+}
+
+Main {
+	create($a);
+	$a = 10;
+	#Func();
+	print($a);
+}

@@ -1,0 +1,41 @@
+
+
+declare @zewnetrzna() {  /? procedura / podprocedura - OK
+    create($x); 
+	$x = 500;
+    
+    declare @zmglob() {
+        $x = $x + 1;
+        print($x); /? zewnętrzny x: 501, potem 502
+    }
+    
+    declare @zmlok() {
+        create($x);
+		$x = 10;
+        @zmglob();
+        print($x); /? lokalny x: 10
+    }
+
+    @zmglob();
+    @zmlok();
+    print($x);    /? zewnętrzny x: 502
+}
+
+declare @przeslanianie($n) {  /? za mało!
+	create($x);
+	$x = 500;
+	while $n > 0 then
+		create($x);
+		$x = 10 + $n;
+		print($x); /? nowy x: 10+n
+		$n = $n - 1;
+	
+	endwhile
+	print($x);   /? stary x: = 500
+}
+
+Main {
+	@zewnetrzna();
+	
+	@przeslanianie(3);
+}

@@ -1,10 +1,10 @@
 create($global);
 
-@updateGlobal() {
+declare @updateGlobal() {
 	$global++;
 }
 
-@word(&#s) {
+declare @word(&#s) {
 	#s = #s + "World!";
 	print(#s);
 }

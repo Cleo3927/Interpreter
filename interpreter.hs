@@ -9,8 +9,7 @@ import Grammar.Print ( Print, printTree )
 import Grammar.Skel  ()
 import Eval as E ( Value(Empt), runEvalProgram )
 import Checker as C ( ValueType(VEmpt), runCheckProgram )
-import GHC.IO.FD (stderr)
-import Data.ByteString.Char8
+import System.IO (stderr, hPutStrLn)
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
@@ -28,14 +27,15 @@ runProg tree = do
   case res of
     Right (E.Empt, _) -> exitSuccess
     Left msg -> do
-      error msg
+      hPutStrLn stderr msg
       exitFailure
+
 runCheck :: Prog -> IO ()
 runCheck tree = 
   let res = C.runCheckProgram tree in 
     case res of
     Left msg -> do
-      error msg
+      hPutStrLn stderr msg
       exitFailure
     _ -> pure ()
 
@@ -43,7 +43,7 @@ run :: ParseFun Prog -> String -> IO ()
 run p s =
   case p ts of
     Left err -> do
-      error err
+      hPutStrLn stderr err 
       exitFailure
     Right tree -> do 
       runCheck tree

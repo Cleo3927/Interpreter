@@ -1,6 +1,6 @@
 create($s);
 
-@dodaj(&$x) {
+declare @dodaj(&$x) {
 	$x++;
 	print($x);
 }

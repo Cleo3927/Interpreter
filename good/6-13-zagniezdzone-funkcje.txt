@@ -1,0 +1,11 @@
+declare @f($x) {
+
+	declare $g($y) { 
+		return $x + $y;
+	}
+  print($g(17));
+}
+
+Main {
+	@f(5);
+}

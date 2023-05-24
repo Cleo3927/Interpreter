@@ -164,16 +164,17 @@ resWords =
           (b "," 14
              (b "++" 13 (b "+" 12 N N) N) (b "--" 16 (b "-" 15 N N) N))
           (b "<=" 20 (b "<" 19 (b ";" 18 N N) N) (b "=" 21 N N))))
-    (b "endif" 33
+    (b "else" 33
        (b "True" 28
           (b "@" 25
              (b ">=" 24 (b ">" 23 N N) N) (b "Main" 27 (b "False" 26 N N) N))
           (b "create" 31
-             (b "continue" 30 (b "break" 29 N N) N) (b "else" 32 N N)))
-       (b "then" 38
-          (b "print" 36
-             (b "if" 35 (b "endwhile" 34 N N) N) (b "return" 37 N N))
-          (b "||" 41 (b "{" 40 (b "while" 39 N N) N) (b "}" 42 N N))))
+             (b "continue" 30 (b "break" 29 N N) N) (b "declare" 32 N N)))
+       (b "then" 39
+          (b "if" 36
+             (b "endwhile" 35 (b "endif" 34 N N) N)
+             (b "return" 38 (b "print" 37 N N) N))
+          (b "||" 42 (b "{" 41 (b "while" 40 N N) N) (b "}" 43 N N))))
   where
   b s n = B bs (TS bs n)
     where

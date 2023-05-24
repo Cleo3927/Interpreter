@@ -1,4 +1,4 @@
-$Func() {
+declare $Func() {
 	return 5;
 }
 

@@ -1,0 +1,9 @@
+declare 'f($x) {
+	if $x == 0 then 
+		return True;
+	endif
+}
+
+Main {
+	print('f(5));
+}

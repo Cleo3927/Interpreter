@@ -20,6 +20,6 @@ Komunikaty błędu są wypisywane na standardowe wyjście błędów i zawierają
 Cechy:
 Na 15: 1, 2, 3, 4, 5, 6, (wybrane: 7 - wartość/referencja)
 Na 20: 9, 10, 11 
-Do 30: Aktualnie 12, 16
+Do 30: Aktualnie 12(4pkt), 13(2pkt), 15(2pkt), 16(1pkt)
 
-Oczekiwany wynik: 25 :)
+Oczekiwany wynik: 29

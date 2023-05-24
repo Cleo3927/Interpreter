@@ -17,7 +17,7 @@ import Distribution.Simple.Utils (xargs)
 import Distribution.Compat.ResponseFile (expandResponse)
 import Prelude
 
-data Value = Intgr Integer | Strln String | Bl Bool | Empt | Func TopDef
+data Value = Intgr Integer | Strln String | Bl Bool | Empt | Func TopDef Env
 data BlokValue = EReturn Value | EBreak BNFC'Position | EContinue BNFC'Position | EEmpty
 
 type Location = Int
@@ -41,20 +41,21 @@ evalExpr :: Expr -> RSE Value
 
 printErr :: BNFC'Position -> String
 printErr Nothing = ""
-printErr (Just (line, col)) = " in line " ++ show line
+printErr (Just (line, col)) = " ---> line " ++ show line
 
 setupArgs :: BNFC'Position -> [Arg] -> [Expr] -> Env -> RSE Env
 setupArgs pos (a:args) (e:exprs) env = do
+  envMain <- ask
   case a of
     Argcopy _ typ name -> do
         v <- evalExpr e
         loc <- alloc
         modify (M.insert loc v)
-        setupArgs pos args exprs (M.insert (takeName "" typ name) loc env)
+        setupArgs pos args exprs (M.insert (takeName "" typ name) loc env) 
     Argref _ typ nameArg -> do
         case e of
             EVar pos typ nameExpr -> do
-                loc <- evalMaybe ("Variable doesn't exists" ++ printErr pos) (M.lookup (takeName "" typ nameExpr) env)
+                loc <- evalMaybe ("Variable doesn't exists" ++ printErr pos) (M.lookup (takeName "" typ nameExpr) envMain)
                 setupArgs pos args exprs (M.insert (takeName "" typ nameArg) loc env)
             _ -> throwError ("Argument is not a reference" ++ printErr pos)
 setupArgs pos (n:no) _ _ = do throwError ("Not enough arguments" ++ printErr pos)
@@ -78,10 +79,10 @@ evalExpr (EApp pos typ name args) = do
     loc <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup (takeName "Fun" typ name) env)
     fn  <- evalMaybe ("Undefined function" ++ printErr pos) (M.lookup loc s)
     case fn of
-        Func x ->
+        Func x env'->
             let (argsFn, blok) = unpackFunction x in
                 do
-                nenv <- setupArgs pos argsFn args env
+                nenv <- setupArgs pos argsFn args env'
                 local (const nenv) (evalStmtFun blok)
         _ -> throwError ("Not a function" ++ printErr pos)
 
@@ -144,7 +145,7 @@ alloc = do
 evalStmt :: [Stmt] -> RSE BlokValue
 evalStmt [] = return EEmpty
 evalStmt ((Empty pos):others) = evalStmt others
-evalStmt ((Decl pos typ name):others) = do
+evalStmt ((Decl pos (VarDef _ typ name)):others) = do
     loc <- alloc
     case typ of
         (Int _) -> do
@@ -156,6 +157,11 @@ evalStmt ((Decl pos typ name):others) = do
         (Bool _) -> do
                    modify (M.insert loc (Bl False))
                    local (M.insert (takeName "" typ name) loc) (evalStmt others)
+evalStmt (DeclFun pos (FnDef posf typf name args block):others) = do
+    loc <- alloc
+    env <- ask
+    modify (M.insert loc (Func (FnDef posf typf name args block) (M.insert (takeName "Fun" typf name) loc env)))
+    local (const (M.insert (takeName "Fun" typf name) loc env)) (evalStmt others)
 evalStmt ((Ass pos typ name expr):others) = do
     env <- ask
     l <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
@@ -235,30 +241,20 @@ evalStmtFun stmts = do
         EContinue pos -> throwError ("Continue may not be used outside of a loop" ++ printErr pos)
         EEmpty -> return Empt
 
-createVarsList :: [TopDefVar' a] -> ([Ident], [Value])
-createVarsList (x:list) =
-    case x of
-        VarDef pos (Int _) name -> (takeName "" (Int 0) name:ids, Intgr 0:vals)
-        VarDef pos (Str _) name -> (takeName "" (Str 0) name:ids, Strln "":vals)
-        VarDef pos (Bool _) name -> (takeName "" (Bool 0) name:ids, Bl False:vals)
-    where (ids, vals) = createVarsList list
-createVarsList [] = ([], [])
-createFuncList :: [TopDef] -> ([Ident], [Value])
-createFuncList (x:list) =
-    case x of
-        (FnDef pos typ name args block) -> (takeName "Fun" typ name:ids, Func x:vals)
-    where (ids, vals) = createFuncList list
-createFuncList [] = ([], [])
+createVarsList :: [TopDefVar' BNFC'Position] -> [Stmt]
+createVarsList ((VarDef pos typ name):list) = Decl pos (VarDef pos typ name):createVarsList list
+createVarsList [] = []
 
-makeEnv :: Prog -> (Env, Store)
-makeEnv (Program pos defVars defFunc block) =
-    let (varsNames, valv) = createVarsList defVars in
-        let (funcsNames, funcv) = createFuncList defFunc in
-            (M.fromList (zip (varsNames ++ funcsNames) [1..]), M.fromList (zip [1..] (valv ++ funcv)))
+createFuncList :: [TopDef' BNFC'Position] -> [Stmt]
+createFuncList ((FnDef pos typ name args block):list) = DeclFun pos (FnDef pos typ name args block):createFuncList list
+createFuncList [] = []
 
 runEval :: (r, s) -> ReaderT r (StateT s (ExceptT e m)) a -> m (Either e (a, s))
 runEval (env, state) ev  =
     runExceptT (runStateT (runReaderT ev env) state)
 
+runProg :: Prog' BNFC'Position -> RSE Value
+runProg (Program pos var func (Block pos2 block)) = evalStmtFun (createVarsList var ++ createFuncList func ++ block)
+
 runEvalProgram :: Prog' BNFC'Position -> IO (Either String (Value, Store))
-runEvalProgram (Program pos var func (Block pos2 block)) = runEval (makeEnv (Program pos var func (Block pos2 block))) (evalStmtFun block)
+runEvalProgram prog = runEval (M.empty, M.empty) (runProg prog)

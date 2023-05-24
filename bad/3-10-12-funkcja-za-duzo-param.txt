@@ -1,4 +1,4 @@
-@Funkcja(#s) {
+declare @Funkcja(#s) {
 	print(#s);
 }
 

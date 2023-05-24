@@ -54,17 +54,18 @@ import Grammar.Lex
   'break'    { PT _ (TS _ 29) }
   'continue' { PT _ (TS _ 30) }
   'create'   { PT _ (TS _ 31) }
-  'else'     { PT _ (TS _ 32) }
-  'endif'    { PT _ (TS _ 33) }
-  'endwhile' { PT _ (TS _ 34) }
-  'if'       { PT _ (TS _ 35) }
-  'print'    { PT _ (TS _ 36) }
-  'return'   { PT _ (TS _ 37) }
-  'then'     { PT _ (TS _ 38) }
-  'while'    { PT _ (TS _ 39) }
-  '{'        { PT _ (TS _ 40) }
-  '||'       { PT _ (TS _ 41) }
-  '}'        { PT _ (TS _ 42) }
+  'declare'  { PT _ (TS _ 32) }
+  'else'     { PT _ (TS _ 33) }
+  'endif'    { PT _ (TS _ 34) }
+  'endwhile' { PT _ (TS _ 35) }
+  'if'       { PT _ (TS _ 36) }
+  'print'    { PT _ (TS _ 37) }
+  'return'   { PT _ (TS _ 38) }
+  'then'     { PT _ (TS _ 39) }
+  'while'    { PT _ (TS _ 40) }
+  '{'        { PT _ (TS _ 41) }
+  '||'       { PT _ (TS _ 42) }
+  '}'        { PT _ (TS _ 43) }
   L_Ident    { PT _ (TV _)    }
   L_integ    { PT _ (TI _)    }
   L_quoted   { PT _ (TL _)    }
@@ -95,7 +96,7 @@ ListTopDefVar
 
 TopDef :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.TopDef) }
 TopDef
-  : Type Ident '(' ListArg ')' '{' Blok '}' { (fst $1, Grammar.Abs.FnDef (fst $1) (snd $1) (snd $2) (snd $4) (snd $7)) }
+  : 'declare' Type Ident '(' ListArg ')' '{' Blok '}' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.FnDef (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2) (snd $3) (snd $5) (snd $8)) }
 
 ListTopDef :: { (Grammar.Abs.BNFC'Position, [Grammar.Abs.TopDef]) }
 ListTopDef
@@ -124,7 +125,8 @@ ListStmt
 Stmt :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Stmt) }
 Stmt
   : ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Empty (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
-  | 'create' '(' Type Ident ')' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Decl (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $3) (snd $4)) }
+  | TopDefVar { (fst $1, Grammar.Abs.Decl (fst $1) (snd $1)) }
+  | TopDef { (fst $1, Grammar.Abs.DeclFun (fst $1) (snd $1)) }
   | Type Ident '=' Expr ';' { (fst $1, Grammar.Abs.Ass (fst $1) (snd $1) (snd $2) (snd $4)) }
   | Type Ident '++' ';' { (fst $1, Grammar.Abs.Incr (fst $1) (snd $1) (snd $2)) }
   | Type Ident '--' ';' { (fst $1, Grammar.Abs.Decr (fst $1) (snd $1) (snd $2)) }

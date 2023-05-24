@@ -1,0 +1,19 @@
+create($x);   /? ze zmienną globalną - OK
+
+declare @zmglob() {
+    $x = $x + 1;
+    print($x); /? globalny x: 501
+}
+
+declare @zmlok() {
+    create($x);
+    $x = 10;
+    @zmglob();
+    print($x); /? lokalny x: 10
+}
+
+Main {
+	$x = 500;
+    @zmlok();
+    print($x);  /? globalny x: 501
+}

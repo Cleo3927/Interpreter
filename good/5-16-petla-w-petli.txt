@@ -1,0 +1,17 @@
+Main {
+	create($n);
+	create($i);
+	$n = 5;
+	
+	while $i < $n then
+		create($j);
+		while $j < $n then
+			print($j);
+			if $i == $j then 
+				break;
+			endif
+			$j++;
+		endwhile
+		$i++;
+	endwhile
+}

@@ -42,6 +42,7 @@ type Stmt = Stmt' BNFC'Position
 data Stmt' a
     = Empty a
     | Decl a (Type' a) Ident
+    | DeclFun a (TopDef' a)
     | Ass a (Type' a) Ident (Expr' a)
     | Incr a (Type' a) Ident
     | Decr a (Type' a) Ident
@@ -52,7 +53,6 @@ data Stmt' a
     | While a (Expr' a) [Stmt' a]
     | WhileSuspended a (Expr' a) [Stmt' a]
     | WhileContinued a (Expr' a) [Stmt' a]
-    | For a (Type' a) Ident (Expr' a) (Expr' a) [Stmt' a]
     | SExp a (Expr' a)
     | Continue a
     | Break a
@@ -135,6 +135,7 @@ instance HasPosition Stmt where
   hasPosition = \case
     Empty p -> p
     Decl p _ _ -> p
+    DeclFun p _ -> p
     Ass p _ _ _ -> p
     Incr p _ _ -> p
     Decr p _ _ -> p
@@ -143,7 +144,8 @@ instance HasPosition Stmt where
     Cond p _ _ -> p
     CondElse p _ _ _ -> p
     While p _ _ -> p
-    For p _ _ _ _ _ -> p
+    WhileSuspended p _ _ -> p
+    WhileContinued p _ _ -> p
     SExp p _ -> p
     Continue p -> p
     Break p -> p
