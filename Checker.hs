@@ -240,7 +240,7 @@ checkStmt ((CondElse pos cond ifstmt elsestmt):others) = do
         (VBl, EReturn VIntgr, EReturn VIntgr) -> return (EReturn VIntgr)
         (VBl, EReturn VBl, EReturn VBl) -> return (EReturn VBl)
         (VBl, EReturn VStrln, EReturn VStrln) -> return (EReturn VStrln)
-        (VBl, _, _) -> throwError ("If return different types" ++ printErr pos)
+        (VBl, _, _) -> throwError ("If and Else return different types" ++ printErr pos)
         (_, _, _) -> throwError ("Condition doesn't have boolean type" ++ printErr pos)
 
 checkStmt ((While pos cond stmt):others) = do
