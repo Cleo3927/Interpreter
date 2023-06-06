@@ -37,7 +37,6 @@ evalMaybe :: String -> Maybe a -> RSE a
 evalMaybe s Nothing = throwError s
 evalMaybe s (Just a) = return a
 
-evalExpr :: Expr -> RSE Value
 
 printErr :: BNFC'Position -> String
 printErr Nothing = ""
@@ -51,7 +50,7 @@ setupArgs pos (a:args) (e:exprs) env = do
         v <- evalExpr e
         loc <- alloc
         modify (M.insert loc v)
-        setupArgs pos args exprs (M.insert (takeName "" typ name) loc env) 
+        setupArgs pos args exprs (M.insert (takeName "" typ name) loc env)
     Argref _ typ nameArg -> do
         case e of
             EVar pos typ nameExpr -> do
@@ -65,6 +64,7 @@ setupArgs _ _ _ env = do return env
 unpackFunction :: TopDef -> ([Arg], [Stmt])
 unpackFunction (FnDef pos typ name argsFn (Block _ blok)) = (argsFn, blok)
 
+evalExpr :: Expr -> RSE Value
 evalExpr (EVar pos typ name) = do
     env <- ask
     s   <- get
@@ -160,8 +160,9 @@ evalStmt ((Decl pos (VarDef _ typ name)):others) = do
 evalStmt (DeclFun pos (FnDef posf typf name args block):others) = do
     loc <- alloc
     env <- ask
-    modify (M.insert loc (Func (FnDef posf typf name args block) (M.insert (takeName "Fun" typf name) loc env)))
-    local (const (M.insert (takeName "Fun" typf name) loc env)) (evalStmt others)
+    let nenv = M.insert (takeName "Fun" typf name) loc env
+    modify (M.insert loc (Func (FnDef posf typf name args block) nenv))
+    local (const nenv) (evalStmt others)
 evalStmt ((Ass pos typ name expr):others) = do
     env <- ask
     l <- evalMaybe ("Undefined variable" ++ printErr pos) (M.lookup (takeName "" typ name) env)
