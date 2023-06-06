@@ -1,0 +1,5 @@
+Main {
+    while True then
+    	return 5;
+    endwhile
+}

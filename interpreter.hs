@@ -8,8 +8,10 @@ import Grammar.Par   ( pProg, myLexer )
 import Grammar.Print ( Print, printTree )
 import Grammar.Skel  ()
 import Eval as E ( Value(Empt), runEvalProgram )
-import Checker as C ( ValueType(VEmpt), runCheckProgram )
+import Checker as C ( runCheckProgram ) 
 import System.IO (stderr, hPutStrLn)
+import qualified Eval as C
+import Checker
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
@@ -26,18 +28,30 @@ runProg tree = do
   res <- E.runEvalProgram tree
   case res of
     Right (E.Empt, _) -> exitSuccess
+    Right (_, _) -> do
+      hPutStrLn stderr "Main couldn't return a value"
+      exitFailure
     Left msg -> do
       hPutStrLn stderr msg
       exitFailure
 
 runCheck :: Prog -> IO ()
-runCheck tree = 
-  let res = C.runCheckProgram tree in 
-    case res of
+runCheck tree = do 
+  res <- C.runCheckProgram tree 
+  case res of
     Left msg -> do
-      hPutStrLn stderr msg
+      hPutStrLn stderr ("Typechecker: " ++ msg)
       exitFailure
-    _ -> pure ()
+    Right EEmpty -> pure ()
+    Right (EBreak pos) -> do
+      hPutStrLn stderr ("Typechecker: Break may not be used outside of a loop" ++ printErr pos)
+      exitFailure
+    Right (EContinue pos) -> do
+      hPutStrLn stderr ("Typechecker: Continue may not be used outside of a loop" ++ printErr pos)
+      exitFailure
+    Right _ -> do 
+      hPutStrLn stderr "Typechecker: Main couldn't return a value"
+      exitFailure
 
 run :: ParseFun Prog -> String -> IO ()
 run p s =

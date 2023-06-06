@@ -1,0 +1,17 @@
+declare $FibRek($x) {
+
+	declare $Fib($x) {
+		return $FibRek($x);
+	}
+	
+	if $x == 0 then return 1; endif
+	if $x == 1 then return 1; endif
+	
+	return $Fib	($x - 1) + $FibRek($x - 2) ; 
+}
+
+Main {
+	create($a);
+	$a = 5;
+    print($FibRek(5));
+}

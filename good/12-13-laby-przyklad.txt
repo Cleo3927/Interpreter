@@ -1,0 +1,10 @@
+declare $f($x) {
+	declare $g($y) {
+    	return 1;
+	}
+    return $g(17);
+}
+
+Main {
+	print($f(5));
+}
